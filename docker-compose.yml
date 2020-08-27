@@ -1,0 +1,28 @@
+version: "3.7"
+services:
+  redis_host:
+    container_name: redis6
+    image: redis:6.0
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: always       
+    hostname: redis
+    sysctls:
+      net.core.somaxconn: '32768' # warning
+    ports: 
+      - "6379:6379"  
+    networks:   
+      telega_network:
+        ipv4_address: 172.21.0.15
+    volumes:
+      - ${PWD}/dockers/redis:/data:rw
+      - ${PWD}/dockers/redis/redis.conf:/usr/local/etc/redis/redis.conf      
+    environment: 
+      - ALLOW_EMPTY_PASSWORD=yes
+
+networks:
+  telega_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.21.0.0/24

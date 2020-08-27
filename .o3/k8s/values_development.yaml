@@ -1,0 +1,5 @@
+# Place dev-cluster overrides here
+deploy:
+  env:
+    - name: SKU_LIMITER_LOG_LEVEL
+      value: INFO

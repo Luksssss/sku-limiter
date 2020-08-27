@@ -1,0 +1,203 @@
+syntax = "proto3";
+
+package skulimiter;
+
+import "google/api/annotations.proto";
+
+service SKULimiter {
+
+    rpc CreateLimitSKU(CLRequest) returns (CLResponse) {
+        option (google.api.http) = {
+            post: "/create-limit-sku"
+            body: "*"
+        };
+    };
+
+    rpc GetLimitSKU(GLRequest) returns (GLResponse) {
+        option (google.api.http) = {
+            post: "/get-limit-sku"
+            body: "*"
+        };
+    };    
+
+    rpc DelLimitSKU(DLRequest) returns (DLResponse) {
+        option (google.api.http) = {
+            post: "/del-limit-sku"
+            body: "*"
+        };
+    };  
+    
+    rpc AddOrder(AORequest) returns (AOResponse) {
+        option (google.api.http) = {
+            post: "/add-order"
+            body: "*"
+        };
+    };   
+    
+    rpc GetLimitUserSKUs(GLUSRequest) returns (GLUSResponse) {
+        option (google.api.http) = {
+            post: "/get-limit-user-skus"
+            body: "*"
+        };
+    };
+
+    rpc GetLimitUsersActions(GLUARequest) returns (GLUAResponse) {
+        option (google.api.http) = {
+            post: "/get-limit-users-actions"
+            body: "*"
+        };
+    };      
+    
+    rpc ReturnOrder(RORequest) returns (ROResponse) {
+        option (google.api.http) = {
+            post: "/return-order"
+            body: "*"
+        };
+    }; 
+    
+    rpc DelLimitUser(DLURequest) returns (DLUResponse) {
+        option (google.api.http) = {
+            post: "/del-limit-user"
+            body: "*"
+        };
+    };      
+
+}
+
+// CREATE Limit SKU
+message CLRequest {
+
+    message Action {
+        int32 limit = 1;
+        int64 sec = 2;
+    }
+    
+    message Actions {    
+        map<string, Action> actions = 1;  
+    }   
+
+    map<string, Actions> skus = 1;
+}
+
+message CLResponse {
+    string status = 1;
+}
+
+
+// GET Limit SKU
+message GLRequest {
+    repeated string skus = 1;
+    repeated string actions = 2;
+}
+
+message GLResponse {
+
+    message Action {
+        int32 limit = 1;
+        int64 sec = 2;
+        int64 datestart = 3;
+    }
+    
+    message Actions{
+        map<string, Action> actions = 1;
+    }
+
+    map<string, Actions> skus = 1;
+    
+}
+
+// DEL Limit SKU
+message DLRequest {
+    repeated string skus = 1;
+    repeated string actions = 2;
+}
+
+message DLResponse {
+    string status = 1;
+}
+
+// ADD Order USER
+message AORequest {
+    
+    message SKU {
+        string sku = 1;
+        string marketing_action_id = 2;
+        int32 qty = 3;
+    }
+    
+    int32 user_id = 1;
+    int32 order_id = 2;
+    int64 order_ts = 3;
+
+    repeated SKU content = 4;
+}
+
+message AOResponse {
+    string status = 1;
+}
+
+// GET Limit USER SKUs
+message GLUSRequest {
+    string user_id = 1;    
+    repeated string skus = 2;
+}
+
+message GLUSResponse {
+
+    message Limit {
+        map <string, int32> limit = 1;
+    }
+
+    string user_id = 1;    
+    map<string, Limit> sku = 2;
+    
+}
+
+// GET Limit USERS actions
+message GLUARequest {
+    repeated string users = 1;    
+    repeated string actions = 2;
+}
+
+message GLUAResponse {
+
+    message Limit {
+        map <string, int32> limit = 1;
+    }
+
+    message SKUs {
+        map<string, Limit> skus = 1;
+    }    
+
+    map<string, SKUs> users = 2;
+    
+}
+
+// RETURN (возврат) order USER
+message RORequest {
+    
+    message SKU {
+        string sku = 1;
+        int32 qty = 2;
+    }
+    
+    int32 user_id = 1;
+    int32 order_id = 2;
+    int64 return_ts = 3;
+
+    repeated SKU content = 4;
+}
+
+message ROResponse {
+    string status = 1;
+}
+
+// DEL Limit USER
+message DLURequest {
+    repeated string users = 1;
+    repeated string actions = 2;
+}
+
+message DLUResponse {
+    string status = 1;
+}

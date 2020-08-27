@@ -1,0 +1,86 @@
+replicaCount: 1
+
+image:
+  # pullPolicy - так как деплоим мастер, нужно всегда подтягивать свежий image.
+  # Когда будет деплой по тегам - можно будет сменить на IfNotPresent
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  monitoringScope: goapi
+  ports:
+    - name: http
+      port: 80
+    - name: grpc
+      port: 82
+    - name: debug
+      port: 84
+
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/
+readinessProbe:
+  initialDelaySeconds: 5
+  httpGet:
+    path: /ready
+    port: debug
+
+livenessProbe:
+  httpGet:
+    path: /live
+    port: debug
+
+# service description data - https://confluence.ozon.ru/pages/viewpage.action?pageId=78354208
+o3:
+  metadata:
+    # service description  (en)
+    description: ""
+    # severity level
+    severityLevel: ""
+    # business owner name (en)
+    businessOwnerName: ""
+    # business owner email
+    businessOwnerEmail: ""
+    # technical owner name (en)
+    technicalOwnerName: ""
+    # technical owner email
+    technicalOwnerEmail: ""
+    # project slack chanel name
+    slackChan: ""
+    # monitoring dashboard url (e.g. grafana)
+    monitoringDashboardUrl: ""
+    # opsGenie url
+    opsGenieUrl: ""
+    # project confluence url
+    confluenceUrl: ""
+    # jira board url
+    jiraBoardUrl: ""
+    jiraProjectName: ""
+    egressApps: []
+
+monitoring:
+  baseAlerts:
+    enabled: true
+
+# etcd realtime config - https://confluence.ozon.ru/pages/viewpage.action?pageId=81479040
+realtimeConfig:
+  log_level:
+    usage: Log level enum
+    group: "scratch"
+    value: "WARN"
+    type: string
+    writable: true
+    view:
+      enum: [ERROR, WARN, INFO, DEBUG]
+
+deploy:
+  env:
+    - name: SKU_LIMITER_DB_DSN
+      value: "172.21.0.15:6379"
+    
+    - name: SKU_LIMITER_DB_NUMBER
+      value: 0
+    
+    - name: SKU_LIMITER_DB_GENERAL_TIMEOUT
+      value: 20
+    
+    - name: SKU_LIMITER_DB_DIAL_TIMEOUT
+      value: 10
