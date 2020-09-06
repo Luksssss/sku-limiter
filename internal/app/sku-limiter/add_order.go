@@ -11,6 +11,6 @@ import (
 
 // AddOrder сохраняем заказ в redis
 func (i *Implementation) AddOrder(ctx context.Context, req *desc.AORequest) (*desc.AOResponse, error) {
-	err := i.addOrderRs(ctx, req.UserId, req.OrderId, req.OrderTs, &req.Content)
+	err := i.addOrderRs(ctx, req.UserId, req.OrderId, req.OrderTs, req.Content)
 	return &desc.AOResponse{Status: "OK"}, err
 }

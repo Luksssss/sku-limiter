@@ -11,6 +11,6 @@ import (
 
 // DelLimitSKU удалим список SKU и их лимиты
 func (i *Implementation) DelLimitSKU(ctx context.Context, req *desc.DLRequest) (*desc.DLResponse, error) {
-	err := i.delLimitSKURs(ctx, &req.Skus, &req.Actions)
+	err := i.delLimitSKURs(ctx, req.Skus, req.Actions)
 	return &desc.DLResponse{Status: "OK"}, err
 }

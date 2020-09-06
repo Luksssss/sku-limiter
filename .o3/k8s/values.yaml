@@ -28,7 +28,6 @@ livenessProbe:
     path: /live
     port: debug
 
-# service description data - https://confluence.ozon.ru/pages/viewpage.action?pageId=78354208
 o3:
   metadata:
     # service description  (en)
@@ -60,7 +59,6 @@ monitoring:
   baseAlerts:
     enabled: true
 
-# etcd realtime config - https://confluence.ozon.ru/pages/viewpage.action?pageId=81479040
 realtimeConfig:
   log_level:
     usage: Log level enum

@@ -11,6 +11,6 @@ import (
 
 // DelLimitUser почистить (ресетнуть) остатки по всем лимитам для списка юзеров и опционально акциям
 func (i *Implementation) DelLimitUser(ctx context.Context, req *desc.DLURequest) (*desc.DLUResponse, error) {
-	err := i.delLimitUserRs(ctx, &req.Users, &req.Actions)
+	err := i.delLimitUserRs(ctx, req.Users, req.Actions)
 	return &desc.DLUResponse{Status: "OK"}, err
 }

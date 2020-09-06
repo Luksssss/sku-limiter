@@ -92,7 +92,7 @@ func TestcreateLimitSKURs(i *Implementation) func(t *testing.T) {
 		skus["qqq"] = &desc.CLRequest_Actions{Actions: actions}
 
 		ctx := i.db.Context()
-		err := i.createLimitSKURs(ctx, &skus)
+		err := i.createLimitSKURs(ctx, skus)
 		t.Logf("error: %v; data: %v", err, skus)
 
 		assert.Nil(t, err)
@@ -106,7 +106,7 @@ func TestgetLimitSKUnitsRs(i *Implementation) func(t *testing.T) {
 		ctx := i.db.Context()
 		skus := []string{"sss", "fff", "www"}
 		filterActions := []string{}
-		res, err := i.getLimitSKUnitsRs(ctx, &skus, &filterActions)
+		res, err := i.getLimitSKUnitsRs(ctx, skus, filterActions)
 		t.Logf("result: %v; error: %v", *res, err)
 
 		testCases := []struct {
@@ -148,7 +148,7 @@ func TestdelLimitSKURs(i *Implementation) func(t *testing.T) {
 		ctx := i.db.Context()
 		skusDel := []string{"www", "fff"}
 		filterActions := []string{zeroAction, "2", "4"}
-		err := i.delLimitSKURs(ctx, &skusDel, &filterActions)
+		err := i.delLimitSKURs(ctx, skusDel, filterActions)
 		t.Logf("error: %v", err)
 
 		testCases := []struct {
@@ -210,7 +210,7 @@ func TestaddOrderRs(i *Implementation) func(t *testing.T) {
 		for _, tc := range testCases {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
-				err := i.addOrderRs(ctx, tc.userIDInt, tc.OrderID, tc.do, &tc.content)
+				err := i.addOrderRs(ctx, tc.userIDInt, tc.OrderID, tc.do, tc.content)
 				t.Logf("error: %v; userID: %v; date_order: %v", err, tc.userIDInt, tc.do)
 				assert.Nil(t, err)
 
@@ -243,7 +243,7 @@ func TestreturnOrderRs(i *Implementation) func(t *testing.T) {
 		for _, tc := range testCases {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
-				err := i.returnOrderRs(ctx, tc.userIDInt, tc.OrderID, &tc.content)
+				err := i.returnOrderRs(ctx, tc.userIDInt, tc.OrderID, tc.content)
 				t.Logf("error: %v; userID: %v", err, tc.userIDInt)
 				assert.Nil(t, err)
 
@@ -271,7 +271,7 @@ func TestgetUserLimitsSKUnitsRs(i *Implementation) func(t *testing.T) {
 		for _, tc := range testCases {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
-				res, err := i.getUserLimitsSKUnitsRs(ctx, &tc.skus, tc.userID)
+				res, err := i.getUserLimitsSKUnitsRs(ctx, tc.skus, tc.userID)
 				t.Logf("error: %v; userID: %v; skus: %v", err, tc.userID, tc.skus)
 				assert.Nil(err)
 				for sku, limits := range *res {
@@ -304,7 +304,7 @@ func TestgetLimitsUsersActionsRs(i *Implementation) func(t *testing.T) {
 		for _, tc := range testCases {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := i.getLimitsUsersActionsRs(ctx, &tc.users, &tc.actions)
+				_, err := i.getLimitsUsersActionsRs(ctx, tc.users, tc.actions)
 				assert.Nil(err)
 
 			})
@@ -319,7 +319,7 @@ func TestdelLimitUserRs(i *Implementation) func(t *testing.T) {
 		ctx := i.db.Context()
 		usersDel := []string{"100", "200"}
 		filterActions := []string{}
-		err := i.delLimitUserRs(ctx, &usersDel, &filterActions)
+		err := i.delLimitUserRs(ctx, usersDel, filterActions)
 		t.Logf("error: %v", err)
 
 		testCases := []struct {
@@ -386,7 +386,7 @@ func BenchmarkCreateLimitSKURs(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	impl.createLimitSKURs(ctx, &skus)
+	impl.createLimitSKURs(ctx, skus)
 }
 
 func BenchmarkGetLimitSKUnitsRs(b *testing.B) {
@@ -397,7 +397,7 @@ func BenchmarkGetLimitSKUnitsRs(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	impl.getLimitSKUnitsRs(ctx, &skus, &filterActions)
+	impl.getLimitSKUnitsRs(ctx, skus, filterActions)
 
 }
 
@@ -419,7 +419,7 @@ func BenchmarkAddOrderRs(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	impl.addOrderRs(ctx, tc.userIDInt, tc.OrderID, tc.do, &tc.content)
+	impl.addOrderRs(ctx, tc.userIDInt, tc.OrderID, tc.do, tc.content)
 
 }
 
@@ -431,7 +431,7 @@ func BenchmarkGetUserLimitsSKUnitsRs(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	impl.getUserLimitsSKUnitsRs(ctx, &skus, user)
+	impl.getUserLimitsSKUnitsRs(ctx, skus, user)
 
 }
 
@@ -443,7 +443,7 @@ func BenchmarkGetLimitsUsersActionsRs(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	impl.getLimitsUsersActionsRs(ctx, &users, &actions)
+	impl.getLimitsUsersActionsRs(ctx, users, actions)
 
 }
 
@@ -455,7 +455,7 @@ func BenchmarkDelLimitUserRs(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	impl.delLimitUserRs(ctx, &users, &actions)
+	impl.delLimitUserRs(ctx, users, actions)
 
 }
 
@@ -477,6 +477,6 @@ func BenchmarkReturnOrderRs(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	impl.returnOrderRs(ctx, tc.userIDInt, tc.OrderID, &tc.content)
+	impl.returnOrderRs(ctx, tc.userIDInt, tc.OrderID, tc.content)
 
 }

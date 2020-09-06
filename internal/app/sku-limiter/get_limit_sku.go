@@ -11,6 +11,6 @@ import (
 
 // GetLimitSKU получить акции (лимиты) по списку СКУ + фильтр по акциям
 func (i *Implementation) GetLimitSKU(ctx context.Context, req *desc.GLRequest) (*desc.GLResponse, error) {
-	actionsAllSKU, err := i.getLimitSKUnitsRs(ctx, &req.Skus, &req.Actions)
+	actionsAllSKU, err := i.getLimitSKUnitsRs(ctx, req.Skus, req.Actions)
 	return &desc.GLResponse{Skus: *actionsAllSKU}, err
 }

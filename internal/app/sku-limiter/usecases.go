@@ -33,12 +33,12 @@ type Buy struct {
 }
 
 // CreateLimitSKURs сохранить SKU и его акции
-func (i *Implementation) createLimitSKURs(ctx context.Context, skus *map[string]*desc.CLRequest_Actions) error {
+func (i *Implementation) createLimitSKURs(ctx context.Context, skus map[string]*desc.CLRequest_Actions) error {
 
 	ds := time.Now().Unix()
 	wg := &sync.WaitGroup{}
-	wg.Add(len(*skus))
-	for sku, el := range *skus {
+	wg.Add(len(skus))
+	for sku, el := range skus {
 		go func(sku string, el *desc.CLRequest_Actions) {
 			defer wg.Done()
 			for action, val := range el.Actions {
@@ -63,18 +63,18 @@ func (i *Implementation) createLimitSKURs(ctx context.Context, skus *map[string]
 }
 
 // getLimitSKUnitsRs вернуть список акций для списка SKU
-func (i *Implementation) getLimitSKUnitsRs(ctx context.Context, skus *[]string, filterActions *[]string) (*map[string]*desc.GLResponse_Actions, error) {
+func (i *Implementation) getLimitSKUnitsRs(ctx context.Context, skus []string, filterActions []string) (*map[string]*desc.GLResponse_Actions, error) {
 
 	actionsAllSKU := make(map[string]*desc.GLResponse_Actions)
 
 	wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
-	wg.Add(len(*skus))
-	for _, sku := range *skus {
+	wg.Add(len(skus))
+	for _, sku := range skus {
 
 		go func(sku string) {
 			defer wg.Done()
-			actionsSKU, err := i.getSKULimits(ctx, sku, filterActions)
+			actionsSKU, err := i.getSKULimits(ctx, sku, &filterActions)
 			if err != nil {
 				logger.Error(ctx, "Failed get sku actions", zap.String("sku", sku), err)
 				return
@@ -131,13 +131,13 @@ func (i *Implementation) getSKULimits(ctx context.Context, sku string, filterAct
 }
 
 // delLimitSKURs удалить все лимиты SKU в списке (или определённые акции)
-func (i *Implementation) delLimitSKURs(ctx context.Context, listDelSKU *[]string, listDelAction *[]string) error {
+func (i *Implementation) delLimitSKURs(ctx context.Context, listDelSKU []string, listDelAction []string) error {
 
-	if len(*listDelAction) > 0 {
-		for _, sku := range *listDelSKU {
-			err := i.db.HDel(prefix+sku, *listDelAction...).Err()
+	if len(listDelAction) > 0 {
+		for _, sku := range listDelSKU {
+			err := i.db.HDel(prefix+sku, listDelAction...).Err()
 			if err != nil {
-				logger.Error(ctx, "Failed delete sku actions", zap.String("sku", sku), zap.Strings("actions", *listDelAction), err)
+				logger.Error(ctx, "Failed delete sku actions", zap.String("sku", sku), zap.Strings("actions", listDelAction), err)
 				continue
 			}
 		}
@@ -145,14 +145,14 @@ func (i *Implementation) delLimitSKURs(ctx context.Context, listDelSKU *[]string
 	} else {
 		// добавить всем префикс чтобы можно было найти ключ в redis
 		ind := 0
-		for ind < len(*listDelSKU) {
-			(*listDelSKU)[ind] = prefix + (*listDelSKU)[ind]
+		for ind < len(listDelSKU) {
+			listDelSKU[ind] = prefix + listDelSKU[ind]
 			ind++
 		}
-		err := i.db.Del(*listDelSKU...).Err()
+		err := i.db.Del(listDelSKU...).Err()
 
 		if err != nil {
-			logger.Error(ctx, "Failed delete sku", zap.Strings("skus", *listDelSKU), err)
+			logger.Error(ctx, "Failed delete sku", zap.Strings("skus", listDelSKU), err)
 		}
 
 	}
@@ -181,29 +181,29 @@ func (i *Implementation) getSKULimit(ctx context.Context, sku string, action str
 }
 
 // addOrderRs сохранить заказ с TTL = "окно" + order_ts (дата покупки)
-func (i *Implementation) addOrderRs(ctx context.Context, userIDInt int32, OrderID int32, do int64, content *[]*desc.AORequest_SKU) error {
+func (i *Implementation) addOrderRs(ctx context.Context, userIDInt int32, OrderID int32, do int64, content []*desc.AORequest_SKU) error {
 
 	newMaxTTL := false
 	userID := strconv.FormatInt(int64(userIDInt), 10)
 	maxTTL := i.getMaxTTLUser(ctx, userID)
 	// мапа для обработанных sku
-	processedSKUs := make(map[string]bool, len(*content))
+	processedSKUs := make(map[string]bool, len(content))
 
 	wg := &sync.WaitGroup{}
-	wg.Add(len(*content))
+	wg.Add(len(content))
 	mu := &sync.Mutex{}
 
-	for _, el := range *content {
-		go func(el *desc.AORequest_SKU) {
+	for _, c := range content {
+		go func(c *desc.AORequest_SKU) {
 			defer wg.Done()
 
-			buys, _ := i.getSKUUserFromRedis(ctx, userID, el.Sku)
+			buys, _ := i.getSKUUserFromRedis(ctx, userID, c.Sku)
 
 			// рассчитываем время когда товар выйдет за окно
-			action, err := i.getSKULimit(ctx, el.Sku, el.MarketingActionId)
+			action, err := i.getSKULimit(ctx, c.Sku, c.MarketingActionId)
 
 			if err != nil {
-				logger.Error(ctx, "Failed to add order", zap.Int32("OrderID", OrderID), zap.String("userID", userID), zap.String("sku", el.Sku), err)
+				logger.Error(ctx, "Failed to add order", zap.Int32("OrderID", OrderID), zap.String("userID", userID), zap.String("sku", c.Sku), err)
 				return
 			}
 
@@ -212,7 +212,7 @@ func (i *Implementation) addOrderRs(ctx context.Context, userIDInt int32, OrderI
 				dk := do + action.Sec
 
 				// вытаскиваем текущие покупки (без вышедших за окно) по этому товару и добавляем новый
-				newBuy := Buy{Action: el.MarketingActionId, Qty: el.Qty, DateKill: dk, OrderID: OrderID}
+				newBuy := Buy{Action: c.MarketingActionId, Qty: c.Qty, DateKill: dk, OrderID: OrderID}
 				*buys = append(*buys, newBuy)
 
 				if maxTTL < dk {
@@ -222,15 +222,15 @@ func (i *Implementation) addOrderRs(ctx context.Context, userIDInt int32, OrderI
 			}
 
 			// по нулевой акции всегда добавляем покупку (нулевой акции может и не быть)
-			if el.MarketingActionId != zeroAction {
-				action, err := i.getSKULimit(ctx, el.Sku, zeroAction)
+			if c.MarketingActionId != zeroAction {
+				action, err := i.getSKULimit(ctx, c.Sku, zeroAction)
 				if err != nil {
-					logger.Debug(ctx, "Not found zero action", zap.Int32("OrderID", OrderID), zap.String("userID", userID), zap.String("sku", el.Sku), err)
+					logger.Debug(ctx, "Not found zero action", zap.Int32("OrderID", OrderID), zap.String("userID", userID), zap.String("sku", c.Sku), err)
 					return
 				}
 				if action.Sec > 0 {
 					dk0 := do + action.Sec
-					newBuyZero := Buy{Action: zeroAction, Qty: el.Qty, DateKill: dk0, OrderID: OrderID}
+					newBuyZero := Buy{Action: zeroAction, Qty: c.Qty, DateKill: dk0, OrderID: OrderID}
 					*buys = append(*buys, newBuyZero)
 					if maxTTL < dk0 {
 						maxTTL = dk0
@@ -239,18 +239,18 @@ func (i *Implementation) addOrderRs(ctx context.Context, userIDInt int32, OrderI
 				}
 			}
 
-			err = i.updateRecBuy(ctx, buys, userID, el.Sku)
+			err = i.updateRecBuy(ctx, buys, userID, c.Sku)
 			if err != nil {
-				logger.Error(ctx, "Failed to add buy", zap.Int32("OrderID", OrderID), zap.String("userID", userID), zap.String("sku", el.Sku), err)
+				logger.Error(ctx, "Failed to add buy", zap.Int32("OrderID", OrderID), zap.String("userID", userID), zap.String("sku", c.Sku), err)
 				return
 			}
 
 			// тут мапа для товаров и их акций
 			mu.Lock()
-			processedSKUs[el.Sku] = true
+			processedSKUs[c.Sku] = true
 			mu.Unlock()
 
-		}(el)
+		}(c)
 	}
 
 	wg.Wait()
@@ -370,15 +370,15 @@ func (i *Implementation) updateRecBuy(ctx context.Context, buys *[]Buy, userID s
 }
 
 // getUserLimitsSKUnitsRs вернуть список остатков sku по покупкам для одного юзера
-func (i *Implementation) getUserLimitsSKUnitsRs(ctx context.Context, skus *[]string, userID string) (*map[string]*desc.GLUSResponse_Limit, error) {
+func (i *Implementation) getUserLimitsSKUnitsRs(ctx context.Context, skus []string, userID string) (*map[string]*desc.GLUSResponse_Limit, error) {
 
 	userLimitsSKUnits := make(map[string]*desc.GLUSResponse_Limit)
 
 	wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
-	wg.Add(len(*skus))
+	wg.Add(len(skus))
 
-	for _, sku := range *skus {
+	for _, sku := range skus {
 		go func(sku string) {
 			defer wg.Done()
 			balance, err := i.getUserLimitsSKU(ctx, sku, userID)
@@ -436,18 +436,18 @@ func (i *Implementation) getUserLimitsSKU(ctx context.Context, sku string, userI
 }
 
 // getLimitsUsersActionsRs вернуть список остатков для списка юзеров + фильтр по акциям
-func (i *Implementation) getLimitsUsersActionsRs(ctx context.Context, users *[]string, filterActions *[]string) (*map[string]*desc.GLUAResponse_SKUs, error) {
+func (i *Implementation) getLimitsUsersActionsRs(ctx context.Context, users []string, filterActions []string) (*map[string]*desc.GLUAResponse_SKUs, error) {
 
 	usersActions := make(map[string]*desc.GLUAResponse_SKUs)
 
 	wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
-	wg.Add(len(*users))
+	wg.Add(len(users))
 
-	for _, user := range *users {
+	for _, user := range users {
 		go func(user string) {
 			defer wg.Done()
-			balanceSKUs, err := i.getUserLimitsActions(ctx, user, filterActions)
+			balanceSKUs, err := i.getUserLimitsActions(ctx, user, &filterActions)
 			if err != nil {
 				return
 			}
@@ -514,39 +514,39 @@ func (i *Implementation) getUserLimitsActions(ctx context.Context, userID string
 }
 
 // returnOrderRs возврат товаров
-func (i *Implementation) returnOrderRs(ctx context.Context, userIDInt int32, OrderID int32, content *[]*desc.RORequest_SKU) error {
+func (i *Implementation) returnOrderRs(ctx context.Context, userIDInt int32, OrderID int32, content []*desc.RORequest_SKU) error {
 
 	userID := strconv.FormatInt(int64(userIDInt), 10)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(len(*content))
+	wg.Add(len(content))
 
-	for _, el := range *content {
+	for _, c := range content {
 
-		go func(el *desc.RORequest_SKU) {
+		go func(c *desc.RORequest_SKU) {
 			defer wg.Done()
 			editRec := false
-			buys, _ := i.getSKUUserFromRedis(ctx, userID, el.Sku)
+			buys, _ := i.getSKUUserFromRedis(ctx, userID, c.Sku)
 			// найдём заказ по которому делается возврат, для выяснения акции
 			// если заказ не найден, значит он вышел за окно и ничего не делаем
 			// может быть больше одной записи (т.к. при наличии нулевой акции по ней тоже нужно вернуть)
 			for ind, buy := range *buys {
 				if buy.OrderID == OrderID {
 					// вытаскиваем номер акции
-					(*buys)[ind].Qty -= el.Qty
+					(*buys)[ind].Qty -= c.Qty
 					editRec = true
 				}
 			}
 
 			if editRec {
-				err := i.updateRecBuy(ctx, buys, userID, el.Sku)
+				err := i.updateRecBuy(ctx, buys, userID, c.Sku)
 				if err != nil {
-					logger.Error(ctx, "Failed to update buys", zap.String("userID", userID), zap.String("sku", el.Sku), err)
+					logger.Error(ctx, "Failed to update buys", zap.String("userID", userID), zap.String("sku", c.Sku), err)
 					return
 				}
 			}
 
-		}(el)
+		}(c)
 	}
 
 	wg.Wait()
@@ -554,14 +554,14 @@ func (i *Implementation) returnOrderRs(ctx context.Context, userIDInt int32, Ord
 }
 
 // delLimitUserRs удаляем пользователский покупки, если есть список акций, то только по акциям.
-func (i *Implementation) delLimitUserRs(ctx context.Context, listDelUser *[]string, listDelAction *[]string) error {
+func (i *Implementation) delLimitUserRs(ctx context.Context, listDelUser []string, listDelAction []string) error {
 
-	if len(*listDelAction) > 0 {
+	if len(listDelAction) > 0 {
 
 		wg := &sync.WaitGroup{}
-		wg.Add(len(*listDelUser))
+		wg.Add(len(listDelUser))
 
-		for _, userID := range *listDelUser {
+		for _, userID := range listDelUser {
 			go func(userID string) {
 				defer wg.Done()
 				// список sku у пользователя
@@ -575,7 +575,7 @@ func (i *Implementation) delLimitUserRs(ctx context.Context, listDelUser *[]stri
 				for _, sku := range skuList {
 					buys, editRec := i.getSKUUserFromRedis(ctx, userID, sku)
 
-					for _, action := range *listDelAction {
+					for _, action := range listDelAction {
 
 						ind := 0
 						// пробегаемся по покупкам, если акция находится - удаляем
@@ -603,9 +603,9 @@ func (i *Implementation) delLimitUserRs(ctx context.Context, listDelUser *[]stri
 		wg.Wait()
 
 	} else {
-		err := i.db.Del(*listDelUser...).Err()
+		err := i.db.Del(listDelUser...).Err()
 		if err != nil {
-			logger.Error(ctx, "Error removing from redis", zap.Strings("listDelUser", *listDelUser), err)
+			logger.Error(ctx, "Error removing from redis", zap.Strings("listDelUser", listDelUser), err)
 		}
 	}
 

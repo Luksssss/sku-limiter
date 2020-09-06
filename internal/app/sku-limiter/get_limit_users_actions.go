@@ -11,6 +11,6 @@ import (
 
 // GetLimitUsersActions получить остатки по всем лимитам для списка юзеров и опционально акциям
 func (i *Implementation) GetLimitUsersActions(ctx context.Context, req *desc.GLUARequest) (*desc.GLUAResponse, error) {
-	usersActions, err := i.getLimitsUsersActionsRs(ctx, &req.Users, &req.Actions)
+	usersActions, err := i.getLimitsUsersActionsRs(ctx, req.Users, req.Actions)
 	return &desc.GLUAResponse{Users: *usersActions}, err
 }

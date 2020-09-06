@@ -11,6 +11,6 @@ import (
 
 // CreateLimitSKU задать лимиты для списка sku
 func (i *Implementation) CreateLimitSKU(ctx context.Context, req *desc.CLRequest) (*desc.CLResponse, error) {
-	err := i.createLimitSKURs(ctx, &req.Skus)
+	err := i.createLimitSKURs(ctx, req.Skus)
 	return &desc.CLResponse{Status: "OK"}, err
 }

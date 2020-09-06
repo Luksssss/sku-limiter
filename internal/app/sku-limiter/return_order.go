@@ -11,6 +11,6 @@ import (
 
 // ReturnOrder отмены и возвраты ранее купленных товаров, которые должны "плюсовать" расход лимитов
 func (i *Implementation) ReturnOrder(ctx context.Context, req *desc.RORequest) (*desc.ROResponse, error) {
-	err := i.returnOrderRs(ctx, req.UserId, req.OrderId, &req.Content)
+	err := i.returnOrderRs(ctx, req.UserId, req.OrderId, req.Content)
 	return &desc.ROResponse{Status: "OK"}, err
 }

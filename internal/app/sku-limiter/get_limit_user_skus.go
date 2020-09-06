@@ -11,6 +11,6 @@ import (
 
 // GetLimitUserSKUs получить остатки по лимитам для 1 юзера по заданному списку sku
 func (i *Implementation) GetLimitUserSKUs(ctx context.Context, req *desc.GLUSRequest) (*desc.GLUSResponse, error) {
-	UserlimitsSKUnits, err := i.getUserLimitsSKUnitsRs(ctx, &req.Skus, req.UserId)
+	UserlimitsSKUnits, err := i.getUserLimitsSKUnitsRs(ctx, req.Skus, req.UserId)
 	return &desc.GLUSResponse{UserId: req.UserId, Sku: *UserlimitsSKUnits}, err
 }
